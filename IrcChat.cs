@@ -30,6 +30,10 @@ namespace TwitchChatIRC
 			await writer.WriteLineAsync($"NICK {username}");
 			await writer.WriteLineAsync($"JOIN #{channel}");
 
+			await writer.WriteLineAsync("CAP REQ :twitch.tv/membership");
+			await writer.WriteLineAsync("CAP REQ :twitch.tv/tags");
+			await writer.WriteLineAsync("CAP REQ :twitch.tv/commands");
+
 			// Start reading messages
 			await ReadMessagesAsync(msg, color);
 		}
