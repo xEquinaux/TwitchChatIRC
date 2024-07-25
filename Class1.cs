@@ -7,30 +7,34 @@ using ColorDialog = System.Windows.Forms.ColorDialog;
 
 namespace TwitchChatIRC
 {
+	[twitchbot.api.ApiVersion(0, 1)]
 	public class Library : ChatInterface
 	{
-		public static Library Instance; 
+		public static Library Instance;
 
-		public string User;
-		public string OAuth;
-		public string Channel;
+		public override string Name => "Twitch Chat IRC";
+		public override Version Version => new Version(1, 0, 18, 2);
+
+		public string User = "";
+		public string OAuth = "";
+		public string Channel = "";
 
 		public IrcChat chat;
 		Rectangle chatBounds = new Rectangle(0, 0, 200, 300);
-		
+
 		ListBox chatBox;
 		Scroll chatScroll;
-		Button color; 
+		Button color;
 		Button textColor;
 		Button borderColor;
 		Button noBgButton;
 		Color chatBgColor = Color.Gray;
 		Color chatTextColor = Color.White;
 		Color chatBorderColor = Color.Black;
-		
+
 		int ticks = 0;
 		bool NoChat = false;
-		
+
 		/// <summary>
 		/// The pre-built string channel for displaying on the chat log. This is linked with MsgColor List to be used in parallel.
 		/// </summary>
@@ -39,11 +43,10 @@ namespace TwitchChatIRC
 		/// The pre-built message Color for displaying chat colors in the chat log. This is to be run in parallel with the Messages List.
 		/// </summary>
 		public static IList<Color> MsgColor = new List<Color>() { Color.Black };
-		
+
 		public override void Initialize()
 		{
-			chatScroll = new Scroll(chatBounds);
-			chatBox = new ListBox(chatBounds, chatScroll, Messages.ToArray(), textColor: MsgColor.ToArray());
+			new IrcChat().ConnectAsync(User, OAuth, Channel);
 			Game1.ApiButton.Add(color);
 			Game1.ApiButton.Add(textColor);
 			Game1.ApiButton.Add(borderColor);
@@ -66,72 +69,70 @@ namespace TwitchChatIRC
 		public override bool Load()
 		{
 			Instance = this;
-			new IrcChat().ConnectAsync(User, OAuth, Channel);
+			chatScroll = new Scroll(chatBounds);
+			chatBox = new ListBox(chatBounds, chatScroll, Messages.ToArray(), textColor: MsgColor.ToArray());
 			return true;
 		}
 
 		public override void Update()
 		{
-			if (!NoChat)
-			{ 
-				chatBox.content = Messages.ToArray();
-				chatBox.textColor = MsgColor.ToArray();
-				chatBounds = chatBox.hitbox;
-				if (!chatScroll.clicked)
-				{ 
-					if (!Element.Resize(ref chatBox.hitbox))
-					{
-						Mouse.SetCursor(MouseCursor.Arrow);
-						chatBox.Update(true);
-					}
-					else if (chatBounds != chatBox.hitbox)
-					{
-						ResizeChat();
-					}
-				}
-				chatBox.Update(false);
-				var v2 = Game1.Consolas.MeasureString("Change background");
-				color.box = new Rectangle(0, 0, (int)v2.X, (int)v2.Y);
-				if (color.LeftClick())
+			chatBox.content = Messages.ToArray();
+			chatBox.textColor = MsgColor.ToArray();
+			chatBounds = chatBox.hitbox;
+			if (!chatScroll.clicked)
+			{
+				if (!Element.Resize(ref chatBox.hitbox))
 				{
-					var item = new ColorDialog();
-					item.ShowDialog();
-					var c = item.Color;
-					chatBgColor = new Color(c.R, c.G, c.B);
+					Mouse.SetCursor(MouseCursor.Arrow);
+					chatBox.Update(true);
 				}
-				if (textColor.LeftClick())
+				else if (chatBounds != chatBox.hitbox)
 				{
-					var item = new ColorDialog();
-					item.ShowDialog();
-					var c = item.Color;
-					chatTextColor = new Color(c.R, c.G, c.B);
+					ResizeChat();
 				}
-				if (borderColor.LeftClick())
-				{
-					var item = new ColorDialog();
-					item.ShowDialog();
-					var c = item.Color;
-					chatBorderColor = new Color(c.R, c.G, c.B);
-				}
-				if (noBgButton.LeftClick() && ticks == 0)
-				{
-					NoChat = !NoChat;
-					ticks++;
-				}
-				else if (!noBgButton.LeftClick()) ticks = 0;
 			}
+			chatBox.Update(false);
+			var v2 = Game1.Consolas.MeasureString("Change background");
+			color.box = new Rectangle(0, 0, (int)v2.X, (int)v2.Y);
+			if (color.LeftClick())
+			{
+				var item = new ColorDialog();
+				item.ShowDialog();
+				var c = item.Color;
+				chatBgColor = new Color(c.R, c.G, c.B);
+			}
+			if (textColor.LeftClick())
+			{
+				var item = new ColorDialog();
+				item.ShowDialog();
+				var c = item.Color;
+				chatTextColor = new Color(c.R, c.G, c.B);
+			}
+			if (borderColor.LeftClick())
+			{
+				var item = new ColorDialog();
+				item.ShowDialog();
+				var c = item.Color;
+				chatBorderColor = new Color(c.R, c.G, c.B);
+			}
+			if (noBgButton.LeftClick() && ticks == 0)
+			{
+				NoChat = !NoChat;
+				ticks++;
+			}
+			else if (!noBgButton.LeftClick()) ticks = 0;
 		}
 
 		public override void Draw(SpriteBatch sb)
 		{
 			if (!NoChat)
-			{ 
+			{
 				sb.Draw(Game1.MagicPixel, chatBox.hitbox, chatBgColor);
-				chatBox.Draw(sb, Game1.Consolas, default, chatTextColor, chatBorderColor, 4, 0, 18);
-				if (chatBox.hitbox.Contains(Mouse.GetState().Position))
-				{
-					chatScroll.Draw(sb, Color.Gray);
-				}
+			}
+			chatBox.Draw(sb, Game1.Consolas, default, chatTextColor, chatBorderColor, 4, 0, 18);
+			if (chatBox.hitbox.Contains(Mouse.GetState().Position))
+			{
+				chatScroll.Draw(sb, Color.Gray);
 			}
 		}
 
@@ -141,6 +142,8 @@ namespace TwitchChatIRC
 
 		public void AddMessage(string text, Color color)
 		{
+			if (chatBox == null)
+				return;
 			var list = TextWrapper.WrapText(Game1.Consolas, text, chatBox.hitbox.Width);
 			foreach (var item in list)
 			{
