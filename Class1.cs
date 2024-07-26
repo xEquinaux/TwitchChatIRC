@@ -13,7 +13,7 @@ namespace TwitchChatIRC
 		public static Library Instance;
 
 		public override string Name => "Twitch Chat IRC";
-		public override Version Version => new Version(1, 0, 18, 2);
+		public override Version Version => new Version(1, 0, 28, 4);
 
 		public string User = "";
 		public string OAuth = "";
@@ -47,10 +47,6 @@ namespace TwitchChatIRC
 		public override void Initialize()
 		{
 			new IrcChat().ConnectAsync(User, OAuth, Channel);
-			Game1.ApiButton.Add(color);
-			Game1.ApiButton.Add(textColor);
-			Game1.ApiButton.Add(borderColor);
-			Game1.ApiButton.Add(noBgButton);
 		}
 
 		public override bool LoadContent()
@@ -63,6 +59,13 @@ namespace TwitchChatIRC
 			borderColor = new Button("Border color", new Rectangle(0, (int)v2.Y * 2, (int)v2.X, (int)v2.Y), Color.LightGray) { active = true, drawMagicPixel = true, innactiveDrawText = true };
 			v2 = Game1.Consolas.MeasureString("Draw background");
 			noBgButton = new Button("Draw background", new Rectangle(0, (int)v2.Y * 3, (int)v2.X, (int)v2.Y), Color.LightGray) { active = true, drawMagicPixel = true, innactiveDrawText = true };
+			Button = new Button[]
+			{
+				color,
+				textColor,
+				borderColor,
+				noBgButton
+			};
 			return true;
 		}
 
@@ -92,8 +95,6 @@ namespace TwitchChatIRC
 				}
 			}
 			chatBox.Update(false);
-			var v2 = Game1.Consolas.MeasureString("Change background");
-			color.box = new Rectangle(0, 0, (int)v2.X, (int)v2.Y);
 			if (color.LeftClick())
 			{
 				var item = new ColorDialog();
